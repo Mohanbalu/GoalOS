@@ -4,6 +4,8 @@ import { DepartmentBarChart } from "@/components/analytics/DepartmentBarChart"
 import { ExportButton } from "@/components/analytics/ExportButton"
 import { Shield, Building, BarChart3, Activity } from "lucide-react"
 
+export const dynamic = "force-dynamic"
+
 export default async function OrganizationAnalytics() {
   const departments = await prisma.department.findMany({
     include: {

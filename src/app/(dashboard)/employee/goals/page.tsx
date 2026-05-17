@@ -15,6 +15,8 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { GoalSheetStatusPanel } from "./_components/GoalSheetStatusPanel"
 
+export const dynamic = "force-dynamic"
+
 export default async function GoalsPage() {
   const session = await auth()
   const userId = session?.user?.id

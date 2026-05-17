@@ -2,6 +2,8 @@ import prisma from "@/lib/db/prisma"
 import { auth } from "@/auth"
 import { ApprovalTable } from "./_components/ApprovalTable"
 
+export const dynamic = "force-dynamic"
+
 export default async function ApprovalsPage({
   searchParams,
 }: {

@@ -6,6 +6,8 @@ import { auth } from "@/auth"
 import * as React from "react"
 import { DashboardSkeleton, ChartSkeleton } from "@/components/shared/Skeletons"
 
+export const dynamic = "force-dynamic"
+
 export default async function EmployeeDashboard() {
   const session = await auth()
   const userId = session?.user?.id

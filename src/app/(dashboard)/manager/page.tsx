@@ -8,6 +8,8 @@ import * as React from "react"
 import { DashboardSkeleton, ChartSkeleton } from "@/components/shared/Skeletons"
 import { getCurrentQuarter } from "@/lib/utils/quarter"
 
+export const dynamic = "force-dynamic"
+
 export default async function ManagerDashboard() {
   const session = await auth()
   const managerId = session?.user?.id
