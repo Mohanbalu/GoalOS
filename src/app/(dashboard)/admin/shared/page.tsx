@@ -3,6 +3,8 @@ import { SharedGoalTable } from "./_components/SharedGoalTable"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 
+export const dynamic = "force-dynamic"
+
 export default async function SharedGoalsPage() {
   const sharedGoals = await prisma.sharedGoal.findMany({
     include: {

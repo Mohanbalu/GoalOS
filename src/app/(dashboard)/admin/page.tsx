@@ -7,6 +7,8 @@ import prisma from "@/lib/db/prisma"
 import * as React from "react"
 import { DashboardSkeleton, ChartSkeleton } from "@/components/shared/Skeletons"
 
+export const dynamic = "force-dynamic"
+
 export default async function AdminDashboard() {
   const [usersCount, activeCycles, totalGoals, logs] = await Promise.all([
     prisma.user.count(),

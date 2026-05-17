@@ -4,6 +4,8 @@ import { redirect } from "next/navigation"
 import { Shield } from "lucide-react"
 import { EscalationConsoleClient } from "./_components/EscalationConsoleClient"
 
+export const dynamic = "force-dynamic"
+
 export default async function EscalationPage() {
   const session = await auth()
   

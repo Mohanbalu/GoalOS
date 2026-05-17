@@ -17,6 +17,8 @@ import {
 
 import { CyclesListClient } from "./_components/CyclesListClient"
 
+export const dynamic = "force-dynamic"
+
 export default async function CyclesPage() {
   const cyclesDB = await prisma.cycle.findMany({
     orderBy: { startDate: "desc" }

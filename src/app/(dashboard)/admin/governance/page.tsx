@@ -5,6 +5,8 @@ import { Shield } from "lucide-react"
 import { GovernanceConsoleClient } from "./_components/GovernanceConsoleClient"
 import { getCurrentQuarter } from "@/lib/utils/quarter"
 
+export const dynamic = "force-dynamic"
+
 export default async function GovernancePage() {
   const session = await auth()
   
