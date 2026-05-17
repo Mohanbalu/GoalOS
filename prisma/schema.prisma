@@ -1,0 +1,274 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ------------------------------------------------------
+// ENUMS
+// ------------------------------------------------------
+
+enum Role {
+  EMPLOYEE
+  MANAGER
+  ADMIN
+}
+
+enum GoalStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  REVISION_REQUESTED
+}
+
+enum CheckinStatus {
+  ON_TRACK
+  AT_RISK
+  COMPLETED
+  OVERDUE
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum EscalationStatus {
+  PENDING
+  RESOLVED
+}
+
+enum FormulaType {
+  MIN
+  MAX
+  TIMELINE
+  ZERO
+}
+
+enum ActionType {
+  CREATE
+  UPDATE
+  DELETE
+  APPROVE
+  REJECT
+}
+
+enum CycleStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+}
+
+enum Quarter {
+  Q1
+  Q2
+  Q3
+  Q4
+}
+
+// ------------------------------------------------------
+// CORE MODELS
+// ------------------------------------------------------
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  name         String
+  passwordHash String
+  role         Role      @default(EMPLOYEE)
+  isActive     Boolean   @default(true)
+  
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+  
+  managerId    String?
+  manager      User?     @relation("ManagerToEmployee", fields: [managerId], references: [id])
+  employees    User[]    @relation("ManagerToEmployee")
+
+  goals        Goal[]
+  approvals    Approval[]
+  notifications Notification[]
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  @@index([email])
+  @@index([managerId])
+  @@index([departmentId])
+}
+
+model Department {
+  id           String    @id @default(uuid())
+  name         String    @unique
+  headId       String?   // User ID of the department head
+  parentId     String?
+  parent       Department? @relation("SubDepartments", fields: [parentId], references: [id])
+  children     Department[] @relation("SubDepartments")
+  
+  users        User[]
+  sharedGoals  SharedGoal[]
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Cycle {
+  id           String    @id @default(uuid())
+  name         String    // e.g., "FY2024"
+  startDate    DateTime
+  endDate      DateTime
+  lockDate     DateTime?
+  status       CycleStatus @default(DRAFT)
+  
+  goals        Goal[]
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+// ------------------------------------------------------
+// GOALS & TRACKING
+// ------------------------------------------------------
+
+model SharedGoal {
+  id           String    @id @default(uuid())
+  title        String
+  description  String?
+  thrustArea   String?
+  uom          String    // Unit of Measurement
+  targetValue  Float
+  formulaType  FormulaType
+  primaryOwnerId String? // User ID of the primary owner for achievement synchronization
+  
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
+
+  goals        Goal[]    // The instances of this goal assigned to employees
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+}
+
+model Goal {
+  id           String    @id @default(uuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id])
+  cycleId      String
+  cycle        Cycle     @relation(fields: [cycleId], references: [id])
+  
+  sharedGoalId String?
+  sharedGoal   SharedGoal? @relation(fields: [sharedGoalId], references: [id])
+
+  title        String
+  description  String?
+  thrustArea   String?
+  uom          String
+  targetValue  Float
+  weightage    Float
+  formulaType  FormulaType
+
+  status       GoalStatus @default(DRAFT)
+  isLocked     Boolean    @default(false)
+  currentProgress Float   @default(0)
+
+  checkins     Checkin[]
+  approvals    Approval[]
+  escalations  Escalation[]
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  @@index([userId])
+  @@index([cycleId])
+  @@index([status])
+}
+
+model Checkin {
+  id             String    @id @default(uuid())
+  goalId         String
+  goal           Goal      @relation(fields: [goalId], references: [id])
+  
+  quarter        Quarter
+  plannedValue   Float?
+  actualValue    Float
+  employeeComment String?
+  managerComment  String?
+  status         CheckinStatus @default(ON_TRACK)
+  isLocked       Boolean    @default(false)
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([goalId, quarter]) // Only one check-in per quarter per goal
+}
+
+// ------------------------------------------------------
+// GOVERNANCE & WORKFLOWS
+// ------------------------------------------------------
+
+model Approval {
+  id           String    @id @default(uuid())
+  goalId       String
+  goal         Goal      @relation(fields: [goalId], references: [id])
+  managerId    String
+  user         User      @relation(fields: [managerId], references: [id])
+  
+  status       ApprovalStatus @default(PENDING)
+  comments     String?
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([goalId])
+  @@index([managerId])
+}
+
+model Escalation {
+  id           String    @id @default(uuid())
+  goalId       String
+  goal         Goal      @relation(fields: [goalId], references: [id])
+  
+  level        Int       @default(1) // 1 = Manager, 2 = Dept Head, 3 = HR
+  status       EscalationStatus @default(PENDING)
+  reason       String?
+  nextRetryAt  DateTime
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Notification {
+  id           String    @id @default(uuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id])
+  type         String    // e.g., "APPROVAL_REQUIRED"
+  message      String
+  actionUrl    String?
+  isRead       Boolean   @default(false)
+
+  createdAt    DateTime  @default(now())
+}
+
+model AuditLog {
+  id           String    @id @default(uuid())
+  entityType   String    // e.g., "GOAL"
+  entityId     String
+  actorId      String    // User who performed the action
+  action       ActionType
+  oldData      Json?
+  newData      Json?
+
+  createdAt    DateTime  @default(now())
+
+  @@index([entityId])
+  @@index([actorId])
+  @@index([createdAt]) // Performance: Indexed for sorting audit logs
+}
