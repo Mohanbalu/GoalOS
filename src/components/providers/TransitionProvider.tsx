@@ -12,7 +12,7 @@ interface TransitionContextType {
 
 const TransitionContext = React.createContext<TransitionContextType | undefined>(undefined)
 
-export function TransitionProvider({ children }: { children: React.ReactNode }) {
+function TransitionProviderInner({ children }: { children: React.ReactNode }) {
   const [isTransitioning, setIsTransitioning] = React.useState(false)
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -39,6 +39,14 @@ export function TransitionProvider({ children }: { children: React.ReactNode }) 
       {isTransitioning && <AuthTransitionOverlay />}
       {children}
     </TransitionContext.Provider>
+  )
+}
+
+export function TransitionProvider({ children }: { children: React.ReactNode }) {
+  return (
+    <React.Suspense fallback={null}>
+      <TransitionProviderInner>{children}</TransitionProviderInner>
+    </React.Suspense>
   )
 }
 
